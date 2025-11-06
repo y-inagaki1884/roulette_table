@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>忘年会 席順抽選</title>
+    <title>最終調整版 忘年会 席順抽選アプリ</title>
     <style>
         /* --- CSS: デザイン部分 --- */
         body {
@@ -30,13 +30,13 @@
             background-color: #f4f7f6;
             padding: 10px 0;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            height: 130px;
+            height: 70px;
             /* ヘッダーの高さを固定 */
         }
 
         #mainResultContainer .container {
             /* 固定コンテナ内のデザイン調整 */
-            padding: 10px 20px;
+            padding: 10px;
             max-width: 800px;
             width: 95%;
             margin: 0 auto;
@@ -44,15 +44,15 @@
         }
 
         #mainResult {
-            font-size: 3em;
+            font-size: 2em;
             font-weight: bold;
             color: #5cb85c;
             margin: 0 auto;
-            min-height: 60px;
+            min-height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
+            padding: 0px;
             border: 2px dashed #ddd;
             border-radius: 8px;
             background-color: #ffffff;
@@ -61,7 +61,7 @@
         /* --- メインコンテンツのコンテナ --- */
         #mainContentWrapper {
             /* 固定ヘッダーの高さ分、上部にマージンを設定し、コンテンツを押し下げる */
-            margin-top: 130px;
+            margin-top: 110px;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -70,7 +70,7 @@
 
         #mainContentWrapper .container {
             background-color: #ffffff;
-            padding: 20px;
+            padding: 10px;
             border-radius: 15px;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
             width: 95%;
@@ -88,7 +88,7 @@
         /* --- 出席者リスト（テーブル） --- */
         #attendeeListContainer {
             margin-top: 20px;
-            text-align: left;
+            text-align: center;
         }
 
         #attendeeTable {
@@ -199,7 +199,7 @@
     <div id="mainContentWrapper">
         <div class="container">
             <div id="attendeeListContainer">
-                <h2>👤 出席者一覧</h2>
+                <h2>🍻 忘年会 席順抽選 🎯</h2>
                 <table id="attendeeTable">
                     <thead>
                         <tr>
@@ -314,11 +314,23 @@
             const allSeats = Array.from({ length: totalSeats }, (_, i) => i + 1);
             availableSeats = allSeats.filter(seat => !usedFixedSeats.has(seat));
 
-            attendees.sort((a, b) => a.name.localeCompare(b.name, 'ja', { sensitivity: 'base' }));
+            // 🌟 修正ポイント: 氏名ではなく、部署名でソートする
+            attendees.sort((a, b) => {
+                // 部署名で比較
+                const deptCompare = a.department.localeCompare(b.department, 'ja', { sensitivity: 'base' });
+
+                if (deptCompare !== 0) {
+                    // 部署名が異なる場合は、部署名でソート
+                    return deptCompare;
+                } else {
+                    // 部署名が同じ場合は、氏名でソート（同じ部署内を整理するため）
+                    return a.name.localeCompare(b.name, 'ja', { sensitivity: 'base' });
+                }
+            });
 
             document.getElementById('seatInfo').textContent = `現在の抽選最大席数: ${totalSeats}席（抽選対象: ${availableSeats.length}席）`;
             renderTable();
-            resultDisplay.textContent = 'リスト更新完了。';
+            resultDisplay.textContent = '抽選してください。';
         }
 
 
@@ -338,7 +350,7 @@
                     // 抽選済み/確認済みの場合は番号を表示
                     seatCell.innerHTML = `<span class="seat-result">${person.seat}番</span>`;
                 } else {
-                    // 🌟 修正ポイント: 抽選/確認前は、固定席の人も含め全員「未定」と表示
+                    // 抽選/確認前は、固定席の人も含め全員「未定」と表示
                     seatCell.textContent = '未定';
                 }
 
@@ -437,6 +449,5 @@
     </script>
 
 </body>
-
 
 </html>
