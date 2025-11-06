@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最終調整版 忘年会 席順抽選アプリ</title>
+    <style>
+        /* --- CSS: デザイン部分 --- */
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 0 10px;
+        }
+
+        /* --- 抽選結果表示エリア（固定ヘッダーとして分離） --- */
+        #mainResultContainer {
+            position: fixed;
+            /* 画面に固定 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: #f4f7f6;
+            padding: 10px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            height: 130px;
+            /* ヘッダーの高さを固定 */
+        }
+
+        #mainResultContainer .container {
+            /* 固定コンテナ内のデザイン調整 */
+            padding: 10px 20px;
+            max-width: 800px;
+            width: 95%;
+            margin: 0 auto;
+            box-shadow: none;
+        }
+
+        #mainResult {
+            font-size: 3em;
+            font-weight: bold;
+            color: #5cb85c;
+            margin: 0 auto;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+
+        /* --- メインコンテンツのコンテナ --- */
+        #mainContentWrapper {
+            /* 固定ヘッダーの高さ分、上部にマージンを設定し、コンテンツを押し下げる */
+            margin-top: 130px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #mainContentWrapper .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 95%;
+            max-width: 800px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #d9534f;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        /* --- 出席者リスト（テーブル） --- */
+        #attendeeListContainer {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        #attendeeTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        #attendeeTable th,
+        #attendeeTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            vertical-align: middle;
+        }
+
+        #attendeeTable th {
+            background-color: #eee;
+        }
+
+        /* 抽選ボタンのスタイル */
+        .draw-button {
+            background-color: #4CAF50;
+            /* Green */
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s;
+        }
+
+        .draw-button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+
+        .draw-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .seat-result {
+            font-weight: bold;
+            color: #007bff;
+            /* Blue */
+        }
+
+        /* --- 編集エリア（Textarea） --- */
+        #editorHeader {
+            margin-top: 40px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px 8px 0 0;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: underline;
+            color: #007bff;
+        }
+
+        #editorArea {
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            background-color: #f9f9f9;
+            display: none;
+        }
+
+        #attendeeData {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .editor-button {
+            padding: 8px 15px;
+            margin-top: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .editor-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="mainResultContainer">
+        <div class="container">
+            
+            <div id="mainResult">リストを読み込んでください</div>
+        </div>
+    </div>
+
+    <div id="mainContentWrapper">
+        <div class="container">
+            <div id="attendeeListContainer">
+                <h2>👤 出席者一覧</h2>
+                <table id="attendeeTable">
+                    <thead>
+                        <tr>
+                            <th>部署</th>
+                            <th>氏名</th>
+                            <th>現在の席順</th>
+                            <th>抽選実行</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendeeTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="editorHeader" onclick="toggleEditor()">
+                📝 出席者リストの編集・更新 (クリックで表示/非表示)
+            </div>
+
+            <div id="editorArea">
+                <p style="font-size: 0.8em; color: #555;">**形式: 部署,氏名,席番号(空欄OK)**</p>
+                <textarea id="attendeeData"></textarea>
+                <button class="editor-button" onclick="loadAttendees()">リストを読み込む/更新</button>
+                <p id="seatInfo" style="margin-top: 10px; font-weight: bold;">現在の抽選最大席数: ---</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript: 動作部分 ---
+
+        let attendees = [];
+        let availableSeats = [];
+        let totalSeats = 0;
+        let isDrawing = false;
+
+        const resultDisplay = document.getElementById('mainResult');
+
+        // 初期データ（コード内に内蔵）
+        const initialData = `
+        営業,山田太郎,
+        開発,佐藤花子,
+        総務,田中一郎,15
+        営業,鈴木美咲,
+        開発,高橋健太,
+        総務,小林由美,1
+        営業,伊藤大輔,
+        開発,渡辺あかり,
+        総務,山本拓也,
+        営業,中村里奈,
+        開発,加藤雅人,
+        総務,吉田恵美,
+        経理,青木さくら,
+        広報,西村正人,
+        人事,藤田ゆり,
+        技術,前田一郎,
+        企画,村上沙織,
+        秘書,大塚真司,
+        法務,松本香織,
+        渉外,林健太郎,
+    `.trim().split('\n').map(line => line.trim()).join('\n');
+        document.getElementById('attendeeData').value = initialData;
+
+
+        function toggleEditor() {
+            const editorArea = document.getElementById('editorArea');
+            const isHidden = editorArea.style.display === 'none' || editorArea.style.display === '';
+            editorArea.style.display = isHidden ? 'block' : 'none';
+        }
+
+
+        function loadAttendees() {
+            const data = document.getElementById('attendeeData').value;
+            const lines = data.split('\n').filter(line => line.trim() !== '');
+
+            if (lines.length === 0) {
+                alert('出席者リストが空です。');
+                return;
+            }
+
+            attendees = [];
+            totalSeats = 0;
+            const usedFixedSeats = new Set();
+
+            lines.forEach((line, index) => {
+                const parts = line.split(',').map(p => p.trim());
+
+                let seat = parts[2] ? parseInt(parts[2], 10) : null;
+                if (seat !== null && isNaN(seat)) seat = null;
+
+                if (seat) {
+                    if (seat > totalSeats) {
+                        totalSeats = seat;
+                    }
+                    usedFixedSeats.add(seat);
+                }
+
+                attendees.push({
+                    id: index,
+                    department: parts[0] || '不明',
+                    name: parts[1] || `名無し${index + 1}`,
+                    fixedSeat: seat,
+                    seat: null,
+                    drawn: false,
+                    isFixed: !!seat
+                });
+            });
+
+            if (attendees.length > totalSeats) {
+                totalSeats = attendees.length;
+            }
+
+            const allSeats = Array.from({ length: totalSeats }, (_, i) => i + 1);
+            availableSeats = allSeats.filter(seat => !usedFixedSeats.has(seat));
+
+            attendees.sort((a, b) => a.name.localeCompare(b.name, 'ja', { sensitivity: 'base' }));
+
+            document.getElementById('seatInfo').textContent = `現在の抽選最大席数: ${totalSeats}席（抽選対象: ${availableSeats.length}席）`;
+            renderTable();
+            resultDisplay.textContent = 'リスト更新完了。';
+        }
+
+
+        // --- テーブルの表示と抽選ボタンの配置 ---
+        function renderTable() {
+            const tbody = document.getElementById('attendeeTableBody');
+            tbody.innerHTML = '';
+
+            attendees.forEach(person => {
+                const row = tbody.insertRow();
+
+                row.insertCell().textContent = person.department;
+                row.insertCell().textContent = person.name;
+
+                const seatCell = row.insertCell();
+                if (person.drawn && person.seat !== null) {
+                    // 抽選済み/確認済みの場合は番号を表示
+                    seatCell.innerHTML = `<span class="seat-result">${person.seat}番</span>`;
+                } else {
+                    // 🌟 修正ポイント: 抽選/確認前は、固定席の人も含め全員「未定」と表示
+                    seatCell.textContent = '未定';
+                }
+
+                const buttonCell = row.insertCell();
+                const button = document.createElement('button');
+                button.className = 'draw-button';
+                button.textContent = person.isFixed ? '確認する' : '抽選する';
+                button.disabled = person.drawn;
+                button.onclick = () => startDraw(person.id);
+                button.id = `drawBtn-${person.id}`;
+                buttonCell.appendChild(button);
+            });
+
+            if (attendees.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 4;
+                cell.textContent = 'リストを読み込んでください。';
+            }
+        }
+
+
+        // --- 抽選ロジック ---
+        function startDraw(personId) {
+            if (isDrawing) return;
+
+            const person = attendees.find(p => p.id === personId);
+            if (!person || person.drawn) return;
+
+            isDrawing = true;
+            document.getElementById(`drawBtn-${personId}`).disabled = true;
+
+            let drawnNumber;
+
+            if (person.isFixed) {
+                drawnNumber = person.fixedSeat;
+            } else {
+                if (availableSeats.length === 0) {
+                    resultDisplay.textContent = '🎉 抽選終了！空席がありません。';
+                    isDrawing = false;
+                    renderTable();
+                    return;
+                }
+
+                const randomIndex = Math.floor(Math.random() * availableSeats.length);
+                drawnNumber = availableSeats[randomIndex];
+
+                availableSeats.splice(randomIndex, 1);
+            }
+
+            displayResult(drawnNumber, personId);
+        }
+
+        // --- 抽選結果のアニメーションとデータ更新 ---
+        function displayResult(number, personId) {
+            let count = 0;
+            const person = attendees.find(p => p.id === personId);
+
+            document.querySelectorAll('.draw-button').forEach(btn => btn.disabled = true);
+
+            const interval = setInterval(() => {
+                if (count < 15) {
+                    const dummyNumber = Math.floor(Math.random() * totalSeats) + 1;
+                    resultDisplay.textContent = `${person.isFixed ? '確認中' : '抽選中'}... ${dummyNumber}番`;
+                    count++;
+                } else {
+                    clearInterval(interval);
+
+                    resultDisplay.textContent = `${person.name} さんの席は ${number}番 に決定！`;
+
+                    person.seat = number;
+                    person.drawn = true;
+
+                    renderTable();
+
+                    document.querySelectorAll('.draw-button').forEach(btn => {
+                        const id = parseInt(btn.id.replace('drawBtn-', ''), 10);
+                        if (!attendees.find(p => p.id === id).drawn) {
+                            btn.disabled = false;
+                        }
+                    });
+
+                    isDrawing = false;
+
+                    if (attendees.every(a => a.drawn)) {
+                        resultDisplay.textContent = '🎉 全員分の席が決まりました！お疲れ様でした！';
+                    }
+                }
+            }, 80);
+        }
+
+        // --- 初期実行 ---
+        window.onload = function () {
+            loadAttendees();
+        };
+    </script>
+
+</body>
+
+</html>
