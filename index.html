@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>最終調整版 忘年会 席順抽選アプリ</title>
+    <title>忘年会アプリ</title>
     <style>
-        /* --- CSS: デザイン部分 --- */
+        /* CSSは共通ですが、メインページでは編集エリア関連のCSSは不要です */
         body {
             font-family: 'Arial', sans-serif;
             display: flex;
@@ -22,7 +22,6 @@
         /* --- 抽選結果表示エリア（固定ヘッダーとして分離） --- */
         #mainResultContainer {
             position: fixed;
-            /* 画面に固定 */
             top: 0;
             left: 0;
             width: 100%;
@@ -33,8 +32,7 @@
         }
 
         #mainResultContainer .container {
-            /* 固定コンテナ内のデザイン調整 */
-            padding: 10px;
+            padding: 10px 20px;
             max-width: 800px;
             width: 95%;
             margin: 0 auto;
@@ -42,7 +40,7 @@
         }
 
         #mainResult {
-            font-size: 2em;
+            font-size: 1em;
             font-weight: bold;
             color: #5cb85c;
             margin: 0 auto;
@@ -58,7 +56,6 @@
 
         /* --- メインコンテンツのコンテナ --- */
         #mainContentWrapper {
-            /* 固定ヘッダーの高さ分、上部にマージンを設定し、コンテンツを押し下げる */
             margin-top: 110px;
             width: 100%;
             display: flex;
@@ -93,7 +90,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
 
         #attendeeTable th,
@@ -135,52 +132,16 @@
             /* Blue */
         }
 
-        /* --- 編集エリア（Textarea） --- */
-        #editorHeader {
-            margin-top: 40px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px 8px 0 0;
-            background-color: #f0f0f0;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: underline;
-            color: #007bff;
-        }
-
-        #editorArea {
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
-            background-color: #f9f9f9;
-            display: none;
-        }
-
-        #attendeeData {
-            width: 100%;
-            min-height: 150px;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-
-        .editor-button {
-            padding: 8px 15px;
-            margin-top: 10px;
+        /* 設定ページへのリンクボタン */
+        .settings-link {
+            display: block;
+            margin-top: 30px;
+            padding: 10px 20px;
             background-color: #007bff;
             color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .editor-button:hover {
-            background-color: #0056b3;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -189,15 +150,15 @@
 
     <div id="mainResultContainer">
         <div class="container">
-
-            <div id="mainResult">リストを読み込んでください</div>
+            
+            <div id="mainResult">設定ページでリストを読み込んでください</div>
         </div>
     </div>
 
     <div id="mainContentWrapper">
         <div class="container">
             <div id="attendeeListContainer">
-                <h2>🍻 忘年会 席順抽選 🎯</h2>
+                <h2>🍻 忘年会アプリ 🎯</h2>
                 <table id="attendeeTable">
                     <thead>
                         <tr>
@@ -212,21 +173,20 @@
                 </table>
             </div>
 
-            <div id="editorHeader" onclick="toggleEditor()">
-                📝 出席者リストの編集・更新 (クリックで表示/非表示)
-            </div>
-
-            <div id="editorArea">
-                <p style="font-size: 0.8em; color: #555;">**形式: 部署,氏名,席番号(空欄OK)**</p>
-                <textarea id="attendeeData"></textarea>
-                <button class="editor-button" onclick="loadAttendees()">リストを読み込む/更新</button>
-                <p id="seatInfo" style="margin-top: 10px; font-weight: bold;">現在の抽選最大席数: ---</p>
+            <div style="margin-top: 30px;">
+                <a href="settings.html" class="settings-link" style="margin-bottom: 10px;">
+                    📝  (設定ページへ)
+                </a>
+                <a href="bingo.html" class="settings-link" style="background-color: #f39c12;">
+                    🎉  (ビンゴページへ)
+                </a>
             </div>
         </div>
     </div>
 
     <script>
         // --- JavaScript: 動作部分 ---
+        // データはLocalStorageから読み込む
 
         let attendees = [];
         let availableSeats = [];
@@ -235,74 +195,16 @@
 
         const resultDisplay = document.getElementById('mainResult');
 
-        // 初期データ（コード内に内蔵）
-        const initialData = `
-            製造第一部,曽我　謙治,
-            製造第一部,富樫　健一,
-            製造第一部,阿部　洋樹,
-            製造第一部,佐久間宏行,
-            製造第一部,長﨑　知広,
-            製造第二部,小林　正明,
-            製造第二部,伊藤　　隆,
-            製造第三部,佐々木幸一,
-            製造第三部,岡田　洋介,
-            製造第三部,長谷川智一,
-            製造第三部,泉田長太郎,
-            製造第三部,柳尾　正彦,
-            製造第三部,石井　真里,
-            システム開発部,内山　一彦,
-            システム開発部,山田　　肇,
-            システム開発部,小山奈美子,
-            システム開発部,篠原　卓,
-            システム開発部,横山　史子,
-            商品企画部,米本　英喜,
-            商品企画部,佐藤　要,
-            製造第五部,高野　栄司,
-            生産技術部,梨本　明彦,
-            生産技術部,迫田　友和,
-            生産技術部,大倉　義明,
-            生産技術部,塚田野乃夏,
-            生産技術部,長谷川真俊,
-            資材部,杵鞭　政和,
-            資材部,更科潤一郎,
-            資材部,坂詰　大輔,
-            資材部,三浦　裕太,
-            資材部,長﨑真理子,
-            資材部,光井　亮祐,
-            資材部,岡村　知哉,
-            資材部,山田　厚子,
-            品質保証部,四柳,
-            品質保証部,小柳,
-            品質保証部,見田,
-            品質保証部,吉田,
-            品質保証部,佐藤,
-            品質保証部,関川,
-            品質保証部,長谷川,
-            品質保証部,竹内,
-            品質保証部,野村,
-            品質保証部,高野,
-            社長,廣田社長,7
-            総務部,金子弘明,
 
-    `.trim().split('\n').map(line => line.trim()).join('\n');
-        document.getElementById('attendeeData').value = initialData;
-
-
-        function toggleEditor() {
-            const editorArea = document.getElementById('editorArea');
-            const isHidden = editorArea.style.display === 'none' || editorArea.style.display === '';
-            editorArea.style.display = isHidden ? 'block' : 'none';
-        }
-
-
+        // --- 2. リストの読み込みと席数の決定 ---
         function loadAttendees() {
-            const data = document.getElementById('attendeeData').value;
-            const lines = data.split('\n').filter(line => line.trim() !== '');
-
-            if (lines.length === 0) {
-                alert('出席者リストが空です。');
+            const storedData = localStorage.getItem('attendeeDataCSV');
+            if (!storedData) {
+                resultDisplay.textContent = 'エラー: データが見つかりません。設定ページを確認してください。';
                 return;
             }
+
+            const lines = storedData.split('\n').filter(line => line.trim() !== '');
 
             attendees = [];
             totalSeats = 0;
@@ -339,23 +241,18 @@
             const allSeats = Array.from({ length: totalSeats }, (_, i) => i + 1);
             availableSeats = allSeats.filter(seat => !usedFixedSeats.has(seat));
 
-            // 🌟 修正ポイント: 氏名ではなく、部署名でソートする
+            // 部署名でソート
             attendees.sort((a, b) => {
-                // 部署名で比較
                 const deptCompare = a.department.localeCompare(b.department, 'ja', { sensitivity: 'base' });
-
                 if (deptCompare !== 0) {
-                    // 部署名が異なる場合は、部署名でソート
                     return deptCompare;
                 } else {
-                    // 部署名が同じ場合は、氏名でソート（同じ部署内を整理するため）
                     return a.name.localeCompare(b.name, 'ja', { sensitivity: 'base' });
                 }
             });
 
-            document.getElementById('seatInfo').textContent = `現在の抽選最大席数: ${totalSeats}席（抽選対象: ${availableSeats.length}席）`;
             renderTable();
-            resultDisplay.textContent = '抽選してください。';
+            resultDisplay.textContent = '抽選を開始してください。';
         }
 
 
@@ -363,6 +260,14 @@
         function renderTable() {
             const tbody = document.getElementById('attendeeTableBody');
             tbody.innerHTML = '';
+
+            if (attendees.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 4;
+                cell.textContent = 'データがありません。設定ページでリストを読み込んでください。';
+                return;
+            }
 
             attendees.forEach(person => {
                 const row = tbody.insertRow();
@@ -372,10 +277,8 @@
 
                 const seatCell = row.insertCell();
                 if (person.drawn && person.seat !== null) {
-                    // 抽選済み/確認済みの場合は番号を表示
                     seatCell.innerHTML = `<span class="seat-result">${person.seat}番</span>`;
                 } else {
-                    // 抽選/確認前は、固定席の人も含め全員「未定」と表示
                     seatCell.textContent = '未定';
                 }
 
@@ -388,13 +291,6 @@
                 button.id = `drawBtn-${person.id}`;
                 buttonCell.appendChild(button);
             });
-
-            if (attendees.length === 0) {
-                const row = tbody.insertRow();
-                const cell = row.insertCell();
-                cell.colSpan = 4;
-                cell.textContent = 'リストを読み込んでください。';
-            }
         }
 
 
@@ -444,8 +340,7 @@
                 } else {
                     clearInterval(interval);
 
-                    resultDisplay.innerHTML = `${person.name} さんの席は<br>${number}番 に決定！`;
-
+                    resultDisplay.textContent = `${person.name} さんの席は ${number}番 に決定！`;
 
                     person.seat = number;
                     person.drawn = true;
