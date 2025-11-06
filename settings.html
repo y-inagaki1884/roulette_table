@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>忘年会 席順抽選アプリ (設定)</title>
+    <style>
+        /* CSSはメインページと共通化していますが、ここでは設定画面に特化したスタイルも追加 */
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px 10px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 95%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        /* --- 編集エリア（Textarea） --- */
+        #editorArea, #bingoSettingsArea {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            text-align: left; /* 左揃えに修正 */
+        }
+        
+        #attendeeData {
+            width: 100%;
+            min-height: 250px; 
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .editor-button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .editor-button:hover {
+            background-color: #0056b3;
+        }
+        
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #d9534f;
+            text-align: center;
+        }
+        
+        /* メインページへのリンクボタン */
+        .main-link {
+            display: block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background-color: #5cb85c;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        /* ビンゴ設定 */
+        .bingo-input-group {
+            margin-bottom: 10px;
+        }
+        .bingo-input-group label {
+            display: inline-block;
+            width: 150px;
+        }
+        .bingo-input-group input {
+            padding: 5px;
+            width: 80px;
+            text-align: right;
+        }
+        .reset-button {
+            background-color: #d9534f;
+            margin-top: 10px;
+        }
+        .reset-button:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 抽選アプリ設定ページ</h1>
+
+    <div id="editorArea">
+        <h2>👤 席順リスト編集</h2>
+        <p style="font-size: 0.8em; color: #555;">**形式: 部署,氏名,席番号(空欄OK)**</p>
+        <textarea id="attendeeData"></textarea>
+        <p id="seatInfo" style="margin-top: 10px; font-weight: bold;"></p>
+        
+        <button class="editor-button" onclick="loadAttendees()">リストをメインアプリに保存・更新</button>
+    </div>
+
+    <div id="bingoSettingsArea">
+        <h2>🎉 ビンゴ抽選設定</h2>
+        
+        <div class="bingo-input-group">
+            <label for="bingoMin">抽選開始番号:</label>
+            <input type="number" id="bingoMin" value="1" min="1">
+        </div>
+        <div class="bingo-input-group">
+            <label for="bingoMax">抽選終了番号:</label>
+            <input type="number" id="bingoMax" value="75" min="1">
+        </div>
+        
+        <button class="editor-button" onclick="saveBingoSettings()">ビンゴ設定を保存</button>
+        <button class="editor-button reset-button" onclick="resetBingoHistory()">ビンゴ履歴をリセット</button>
+    </div>
+    
+    <p id="message"></p>
+    
+    <a href="index.html" class="main-link">
+        🎯 メインページへ戻る
+    </a>
+</div>
+
+<script>
+    // --- 初期データ（メインページと同期） ---
+    const initialData = `
+        製造第一部,曽我謙治,
+        製造第一部,富樫健一,
+        製造第一部,阿部洋樹,
+        製造第一部,佐久間宏行,
+        製造第一部,長﨑知広,
+        製造第二部,小林正明,
+        製造第二部,伊藤隆,
+        製造第三部,佐々木幸一,
+        製造第三部,岡田洋介,
+        製造第三部,長谷川智一,
+        製造第三部,泉田長太郎,
+        製造第三部,柳尾正彦,
+        製造第三部,石井真里,
+        システム開発部,内山一彦,
+        システム開発部,山田肇,
+        システム開発部,小山奈美子,
+        システム開発部,篠原卓,
+        システム開発部,横山史子,
+        商品企画部,米本英喜,
+        商品企画部,佐藤要,
+        製造第五部,高野栄司,
+        生産技術部,梨本明彦,
+        生産技術部,迫田友和,
+        生産技術部,大倉義明,
+        生産技術部,塚田野乃夏,
+        生産技術部,長谷川真俊,
+        資材部,杵鞭政和,
+        資材部,更科潤一郎,
+        資材部,坂詰大輔,
+        資材部,三浦裕太,
+        資材部,長﨑真理子,
+        資材部,光井亮祐,
+        資材部,岡村知哉,
+        資材部,山田厚子,
+        品質保証部,四柳,
+        品質保証部,小柳,
+        品質保証部,見田,
+        品質保証部,吉田,
+        品質保証部,佐藤,
+        品質保証部,関川,
+        品質保証部,長谷川,
+        品質保証部,竹内,
+        品質保証部,野村,
+        品質保証部,高野,
+        社長,廣田社長,7
+        総務部,金子弘明,
+    `.trim().split('\n').map(line => line.trim()).join('\n');
+    
+    // --- ページロード時にLocalStorageのデータを読み込む ---
+    window.onload = function() {
+        // 席順リストの読み込み
+        const storedData = localStorage.getItem('attendeeDataCSV');
+        document.getElementById('attendeeData').value = storedData || initialData;
+        displaySeatInfo(document.getElementById('attendeeData').value);
+        
+        // ビンゴ設定の読み込み
+        const bingoMin = localStorage.getItem('bingoMin') || '1';
+        const bingoMax = localStorage.getItem('bingoMax') || '75';
+        document.getElementById('bingoMin').value = bingoMin;
+        document.getElementById('bingoMax').value = bingoMax;
+    };
+
+    // --- CSVデータを解析し、席数情報を表示する（保存はしない） ---
+    function displaySeatInfo(data) {
+        // (ロジックは変更なし)
+        const lines = data.split('\n').filter(line => line.trim() !== '');
+        let totalSeats = 0;
+        const fixedSeats = new Set();
+        
+        lines.forEach(line => {
+            const parts = line.split(',').map(p => p.trim());
+            let seat = parts[2] ? parseInt(parts[2], 10) : null;
+            if (seat && !isNaN(seat)) {
+                if (seat > totalSeats) {
+                    totalSeats = seat;
+                }
+                fixedSeats.add(seat);
+            }
+        });
+        
+        if (lines.length > totalSeats) {
+             totalSeats = lines.length;
+        }
+        
+        const availableSeatsCount = totalSeats - fixedSeats.size;
+        
+        document.getElementById('seatInfo').textContent = 
+            `現在の最大席数: ${totalSeats}席 | 固定席: ${fixedSeats.size}席 | 抽選対象: ${availableSeatsCount}席`;
+    }
+
+    // --- 席順リストをLocalStorageに保存 ---
+    function loadAttendees() {
+        const data = document.getElementById('attendeeData').value;
+        const lines = data.split('\n').filter(line => line.trim() !== '');
+
+        if (lines.length === 0) {
+            alert('出席者リストが空です。');
+            return;
+        }
+
+        localStorage.setItem('attendeeDataCSV', data);
+        displaySeatInfo(data);
+        
+        showMessage('✅ 席順リストが正常に保存されました！');
+    }
+    
+    // --- 🌟 ビンゴ設定を保存 🌟 ---
+    function saveBingoSettings() {
+        const min = parseInt(document.getElementById('bingoMin').value, 10);
+        const max = parseInt(document.getElementById('bingoMax').value, 10);
+        
+        if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0 || min >= max) {
+            showMessage('🚨 エラー: 有効な番号範囲を入力してください (開始 < 終了、かつ1以上)', true);
+            return;
+        }
+        
+        localStorage.setItem('bingoMin', min);
+        localStorage.setItem('bingoMax', max);
+        showMessage('✅ ビンゴ設定が正常に保存されました！');
+    }
+    
+    // --- 🌟 ビンゴ履歴をリセット 🌟 ---
+    function resetBingoHistory() {
+        if (confirm('ビンゴの抽選履歴を本当にリセットしますか？')) {
+            localStorage.removeItem('bingoDrawnNumbers');
+            showMessage('✅ ビンゴの抽選履歴をリセットしました！', true);
+        }
+    }
+    
+    // --- メッセージ表示関数 ---
+    function showMessage(msg, isReset = false) {
+        const messageElement = document.getElementById('message');
+        messageElement.style.color = isReset ? '#d9534f' : '#4CAF50';
+        messageElement.textContent = msg;
+
+        setTimeout(() => {
+            messageElement.textContent = '';
+        }, 5000);
+    }
+</script>
+
+</body>
+</html>

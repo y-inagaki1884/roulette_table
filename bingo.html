@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビンゴ抽選ページ</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px 10px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 95%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #f39c12;
+            /* ビンゴカラー */
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        /* --- 抽選結果表示エリア --- */
+        #resultDisplay {
+            font-size: 5em;
+            font-weight: bold;
+            color: #d9534f;
+            /* 赤色で強調 */
+            margin: 10px 0 30px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #f39c12;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #fff8e1;
+            /* 薄い黄色 */
+        }
+
+        .draw-button {
+            background-color: #f39c12;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .draw-button:hover:not(:disabled) {
+            background-color: #e67e22;
+        }
+
+        .draw-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* --- 抽選履歴エリア --- */
+        #historyContainer {
+            margin-top: 40px;
+            text-align: left;
+        }
+
+        #historyHeader {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        #historyList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fefefe;
+            min-height: 50px;
+        }
+
+        .drawn-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            background-color: #d9534f;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        /* 設定ページへのリンクボタン */
+        .settings-link {
+            display: block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        #rangeInfo {
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🎉 忘年会 ビンゴ抽選</h1>
+
+        <div id="rangeInfo"></div>
+
+        <div id="resultDisplay">---</div>
+
+        <button id="drawBtn" class="draw-button" onclick="startDraw()">次の番号を抽選！</button>
+
+        <div id="historyContainer">
+            <div id="historyHeader">🔢 抽選履歴（最新が左上）</div>
+            <div id="historyList">
+            </div>
+        </div>
+
+        <a href="settings.html" class="settings-link" style="background-color: #007bff;">
+            📝 ビンゴ設定を変更する
+        </a>
+        <a href="index.html" class="settings-link" style="background-color: #5cb85c;">
+            🎯 席順抽選ページへ戻る
+        </a>
+    </div>
+
+    <script>
+        let minNumber = 1;
+        let maxNumber = 75;
+        let availableNumbers = [];
+        let drawnNumbers = [];
+        let isDrawing = false;
+
+        const resultDisplay = document.getElementById('resultDisplay');
+        const historyList = document.getElementById('historyList');
+        const drawBtn = document.getElementById('drawBtn');
+
+        // --- ページロード時に設定と履歴を読み込む ---
+        window.onload = function () {
+            loadSettings();
+            loadHistory();
+            updateDisplay();
+        };
+
+        function loadSettings() {
+            // 設定をLocalStorageから読み込む
+            const storedMin = parseInt(localStorage.getItem('bingoMin'), 10);
+            const storedMax = parseInt(localStorage.getItem('bingoMax'), 10);
+
+            if (!isNaN(storedMin) && storedMin > 0) minNumber = storedMin;
+            if (!isNaN(storedMax) && storedMax > 0) maxNumber = storedMax;
+
+            if (minNumber >= maxNumber) {
+                minNumber = 1;
+                maxNumber = 75;
+                alert('設定された範囲が不正です。初期値(1〜75)に戻します。');
+            }
+
+            document.getElementById('rangeInfo').textContent = `抽選範囲: ${minNumber}番 〜 ${maxNumber}番`;
+        }
+
+        function loadHistory() {
+            const storedHistory = localStorage.getItem('bingoDrawnNumbers');
+            if (storedHistory) {
+                drawnNumbers = JSON.parse(storedHistory);
+            }
+
+            // 抽選可能な番号のリストを生成
+            const allNumbers = Array.from({ length: maxNumber - minNumber + 1 }, (_, i) => i + minNumber);
+            availableNumbers = allNumbers.filter(num => !drawnNumbers.includes(num));
+        }
+
+        function saveHistory() {
+            localStorage.setItem('bingoDrawnNumbers', JSON.stringify(drawnNumbers));
+        }
+
+        function updateDisplay() {
+            // 履歴リストの表示を更新
+            historyList.innerHTML = '';
+            // 最新の番号が左上に来るように、配列を逆順にして表示
+            [...drawnNumbers].reverse().forEach(num => {
+                const span = document.createElement('div');
+                span.className = 'drawn-number';
+                span.textContent = num;
+                historyList.appendChild(span);
+            });
+
+            // 抽選ボタンの状態を更新
+            if (availableNumbers.length === 0) {
+                drawBtn.disabled = true;
+                drawBtn.textContent = '🎉 全て抽選済みです 🎉';
+                if (drawnNumbers.length > 0) {
+                    resultDisplay.textContent = drawnNumbers[drawnNumbers.length - 1];
+                } else {
+                    resultDisplay.textContent = '---';
+                }
+            } else {
+                drawBtn.disabled = isDrawing;
+                drawBtn.textContent = '次の番号を抽選！';
+            }
+        }
+
+        // --- 抽選ロジック ---
+        function startDraw() {
+            if (isDrawing || availableNumbers.length === 0) return;
+
+            isDrawing = true;
+            drawBtn.disabled = true;
+            drawBtn.textContent = '抽選中...';
+
+            // ランダムな番号を選択
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const drawnNumber = availableNumbers[randomIndex];
+
+            // アニメーション表示
+            displayResult(drawnNumber);
+
+            // リストから削除、履歴に追加
+            availableNumbers.splice(randomIndex, 1);
+            drawnNumbers.push(drawnNumber);
+
+            saveHistory();
+        }
+
+        // --- 抽選結果のアニメーションとデータ更新 ---
+        function displayResult(number) {
+            let count = 0;
+
+            const interval = setInterval(() => {
+                if (count < 20) {
+                    const dummyNumber = availableNumbers.length > 0
+                        ? availableNumbers[Math.floor(Math.random() * availableNumbers.length)]
+                        : Math.floor(Math.random() * (maxNumber - minNumber + 1)) + minNumber;
+
+                    resultDisplay.textContent = dummyNumber;
+                    count++;
+                } else {
+                    clearInterval(interval);
+
+                    // 最終結果を表示
+                    resultDisplay.textContent = number;
+
+                    isDrawing = false;
+                    updateDisplay();
+                }
+            }, 50);
+        }
+    </script>
+
+</body>
+
+</html>
